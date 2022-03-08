@@ -4,22 +4,27 @@ using System.Linq;
 
 namespace Morphology
 {
-    public class SentenceMorpher { 
-    
-        private static readonly Dictionary<string, Dictionary<uint, string>> _dictionary = new(StringComparer.CurrentCultureIgnoreCase);
-        private static readonly Dictionary<string, int> _tagsMap = new(StringComparer.CurrentCultureIgnoreCase);
-        private static int _tagIndex = 0;
+    public class SentenceMorpher {
+
+        private readonly Dictionary<string, Dictionary<uint, string>> _dictionary; //
+        private readonly Dictionary<string, uint> _tagsMap;
+
+        public SentenceMorpher(Dictionary<string, Dictionary<uint, string>> dictionary, Dictionary<string, uint> tagsMap)
+        {
+            _dictionary = dictionary;
+            _tagsMap = tagsMap;
+        }
 
         private static class PrimeNumber
         {
-            private static readonly int basePrime = 2;
+            private static readonly uint basePrime = 2;
 
-            public static int GetBasePrime()
+            public static uint GetBasePrime()
             {
                 return basePrime;
             }
 
-            public static int GetNext(int current)
+            public static uint GetNext(uint current)
             {
                 if (current == basePrime)
                 {
@@ -29,11 +34,6 @@ namespace Morphology
                 {
                     return 5;
                 }
-                if (current == 5)
-                {
-                    return 7;
-                }
-
 
                 var nextPrime = current + 2;
 
@@ -45,11 +45,11 @@ namespace Morphology
                 return nextPrime;
             }
 
-            public static bool CheckPrime(int number)
+            public static bool CheckPrime(uint number)
             {
                 bool IsPrime = true;
 
-                if (number is 2 or 3 or 5 or 7)
+                if (number is 2 or 3 or 5)
                 {
                     return true;
                 }
@@ -67,7 +67,7 @@ namespace Morphology
             }
         }
 
-        private static uint ParseTag(string dictionaryLine, Dictionary<string, int> _tagsMap)
+        private static uint ParseTag(string dictionaryLine, Dictionary<string, uint> _tagsMap)
         {
 
             var splitedLine = dictionaryLine.Split('\t', System.StringSplitOptions.RemoveEmptyEntries);
@@ -75,7 +75,7 @@ namespace Morphology
 
             if (!_tagsMap.ContainsKey(splitedLine[0]))
             {
-                var splitedTags = splitedLine[1].Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+                var splitedTags = splitedLine[1].Split(',', ' ');
                 foreach (var tag in splitedTags)
                 {
                     var lowerTag = tag.ToLower();
@@ -107,64 +107,6 @@ namespace Morphology
             return tagsMultiple;
         }
 
-        private static void WriteDictonaryLines(IEnumerable<string> dictionaryLines, Dictionary<string, Dictionary<uint, string>> dictionary)
-        {   
-            var currentWord = string.Empty;
-            var isNormalForm = false;
-
-            foreach (var dictionaryLine in dictionaryLines)
-            {
-                if (string.IsNullOrWhiteSpace(dictionaryLine))
-                {   
-                    continue;
-                }
-
-                if (int.TryParse(dictionaryLine, out _))
-                {
-                    isNormalForm = true;
-                    continue;
-                }
-
-                if (isNormalForm)
-                {
-                    currentWord = dictionaryLine.Split('\t')[0];
-
-                    if (dictionary.ContainsKey(currentWord))
-                    {
-                        //dictionary[currentWord].Add(ParseTag(dictionaryLine, _tagsMap), dictionaryLine.Split('\t')[0]);
-                        var parsedTag1 = ParseTag(dictionaryLine, _tagsMap);
-                        if (dictionary[currentWord].ContainsKey(parsedTag1))
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            dictionary[currentWord].Add(parsedTag1, dictionaryLine.Split('\t')[0]);
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        dictionary.Add(currentWord, new Dictionary<uint, string>());
-                        isNormalForm = false;
-                        continue;
-                    }
-                }
-                var splittedWord = dictionaryLine.Split('\t')[0];
-                var parsedTag = ParseTag(dictionaryLine, _tagsMap);
-                if (dictionary[currentWord].ContainsKey(parsedTag))
-                {
-                    continue;
-                }
-                else
-                {
-                    dictionary[currentWord].Add(parsedTag, splittedWord);
-                }
-                
-            }
-        }
-
-
         /// <summary>
         ///     Создает <see cref="SentenceMorpher"/> из переданного набора строк словаря.
         /// </summary>
@@ -178,47 +120,113 @@ namespace Morphology
         /// </param>
         public static SentenceMorpher Create(IEnumerable<string> dictionaryLines)
         {
-            WriteDictonaryLines(dictionaryLines, _dictionary);
-            //var currentLine = string.Empty;
-            //var currentNumber = 0;
+            var dictionary = new Dictionary<string, Dictionary<uint, string>>();
+            var tagsMap = new Dictionary<string, uint>();
 
-            //foreach (string dictionaryLine in dictionaryLines)
-            //{
-            //    if (int.TryParse(dictionaryLine, out int number))
-            //    {   
-            //        currentNumber = number;
+            var currentWord = string.Empty;
+            var isNormalForm = false;
 
-            //        continue;
-            //    }
+            foreach (var dictionaryLine in dictionaryLines)
+            {
+                var lowerDictionaryLine = dictionaryLine.ToLower();
+                if (string.IsNullOrWhiteSpace(lowerDictionaryLine))
+                {
+                    continue;
+                }
 
-            //    if (dictionary.ContainsKey(currentLine) && !string.IsNullOrEmpty(dictionaryLine))
-            //    {
-            //        dictionary[currentLine].Add(dictionaryLine);
-            //        continue;
-            //    }
+                if (char.IsDigit(lowerDictionaryLine[0]))
+                {
+                    isNormalForm = true;
+                    continue;
+                }
 
-            //    if (!string.IsNullOrEmpty(dictionaryLine))
-            //    {
-            //        if (!dictionary.ContainsKey(dictionaryLine))
-            //        {
-            //            dictionary.Add(dictionaryLine, new List<string>());
-            //            currentLine = dictionaryLine;
-            //        }
-            //        else
-            //        {
-            //            continue;
-            //        }
-                        
-            //    }
-            //    else
-            //    {
-            //        currentLine = string.Empty;
+                if (isNormalForm)
+                {
+                    currentWord = lowerDictionaryLine.Split('\t')[0];
 
-            //        continue;
-            //    }
-            //}
-            //TODO: код инициализации
-            return new SentenceMorpher();
+                    if (dictionary.ContainsKey(currentWord))
+                    {
+                        var parsedTag1 = ParseTag(lowerDictionaryLine, tagsMap);
+                        if (dictionary[currentWord].ContainsKey(parsedTag1))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            dictionary[currentWord].Add(parsedTag1, lowerDictionaryLine.Split('\t')[0]);
+                            isNormalForm = false;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        dictionary.Add(currentWord, new Dictionary<uint, string>());
+                        isNormalForm = false;
+                        continue;
+                    }
+                }
+
+                var splittedWord = lowerDictionaryLine.Split('\t')[0];
+                var parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
+
+                if (dictionary[currentWord].ContainsKey(parsedTag))
+                {
+                    continue;
+                }
+                else
+                {
+                    dictionary[currentWord].Add(parsedTag, splittedWord);
+                }
+
+            }
+
+            return new SentenceMorpher(dictionary, tagsMap);
+        }
+
+        private string MorphWord(string word, uint tagCode)
+        {   
+            if (!_dictionary.ContainsKey(word))
+            {
+                return word;
+            }
+
+            if (_dictionary[word].ContainsKey(tagCode))
+            {
+                return _dictionary[word][tagCode];
+            }
+
+            return FindNearestWord(word, tagCode);
+        }
+
+        private string FindNearestWord(string word, uint tagCode)
+        {
+    
+            foreach(var wordForm in _dictionary[word])
+            {
+                if (wordForm.Key % tagCode == 0 && PrimeNumber.CheckPrime(wordForm.Key / tagCode))
+                {
+                    return wordForm.Value;
+                }
+            }
+            return word;
+        }
+
+        private uint GenerateTagCode(string tags, Dictionary<string, uint> tagsMap)
+        {
+            var splitedTags = tags.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+            var generatedCode = (uint) 1;
+            foreach(var tag in splitedTags)
+            {
+                if (tagsMap.ContainsKey(tag))
+                {
+                    generatedCode *= tagsMap[tag];
+                }
+                else
+                {
+                    return 1;
+                }
+            }
+            return generatedCode;
         }
 
         /// <summary>
@@ -234,38 +242,32 @@ namespace Morphology
         /// </param>
         public virtual string Morph(string sentence)
         {
-            //sentence = sentence.ToUpper();
-            ////TODO: код реализации
-            //var splitedSentence = sentence.Split(" ", System.StringSplitOptions.RemoveEmptyEntries);
-
-            //for(int i = 0; i<splitedSentence.Length; i++)
-            //{
-            //    var word = splitedSentence[i];
-
-            //    if (word.Contains('{') && word.EndsWith('}'))
-            //    {
-            //        var splitedWord = word.Split('{');
-            //        var tags = splitedWord[1];
-            //        tags = tags.Substring(0, tags.Length - 1);
-            //        word = string.Join('\t', new string[] { splitedWord[0], tags });
-            //        foreach (var dictionaryWord in dictionary.Keys)
-            //        {
-            //            if (dictionaryWord.ToUpper() == word)
-            //            {
-            //                foreach (var taggedWord in dictionary[dictionaryWord])
-            //                {
-            //                    if (taggedWord.Contains(tags))
-            //                    {
-            //                        splitedSentence[i]  = taggedWord.Split('\t')[0];
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
-            //var resultSentence = string.Join(' ', splitedSentence);
-            //sentence = resultSentence;
-
+            if (string.IsNullOrWhiteSpace(sentence))
+            {
+                return string.Empty;
+            }
+            sentence = sentence.ToLower();
+            var splitedSentence = sentence.Split(' ', '\t');
+            var resultSentence = new List<string>();
+            foreach(var word in splitedSentence)
+            {
+                if (word.Contains('{'))
+                {
+                    var splitedWord = word.Split('{', '}');
+                    if (string.IsNullOrWhiteSpace(splitedWord[1]))
+                    {
+                        resultSentence.Add(splitedWord[0]);
+                        continue;
+                    }
+                    resultSentence.Add(MorphWord(splitedWord[0], GenerateTagCode(splitedWord[1], _tagsMap)));
+                }
+                else
+                {
+                    resultSentence.Add(word);
+                }
+            }
+            sentence = String.Join(' ', resultSentence);
+           
             return sentence;
         }
     }

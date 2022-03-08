@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphology", "Morphology.csproj", "{3814B211-08DD-43BD-90C9-5089B559A01F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphology.Tests", "..\..\Morphology.Tests\Morphology.Tests\Morphology.Tests.csproj", "{252B83E2-ACBA-43D6-AB93-D654A3F92959}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{3814B211-08DD-43BD-90C9-5089B559A01F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3814B211-08DD-43BD-90C9-5089B559A01F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3814B211-08DD-43BD-90C9-5089B559A01F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{252B83E2-ACBA-43D6-AB93-D654A3F92959}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{252B83E2-ACBA-43D6-AB93-D654A3F92959}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{252B83E2-ACBA-43D6-AB93-D654A3F92959}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{252B83E2-ACBA-43D6-AB93-D654A3F92959}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
