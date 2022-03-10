@@ -59,12 +59,28 @@ namespace Microservices
                         throw new InternalErrorException(exception);
                     }
                 });
-
         }
 
-        public Task<List<Cat>> GetCatsAsync(string sessionId, int skip, int limit, CancellationToken cancellationToken)
+        public async Task<List<Cat>> GetCatsAsync(string sessionId, int skip, int limit, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
+
+            if (!authorizationResult.IsSuccess)
+            {
+                throw new AuthorizationException();
+            }
+
+            var products = await _policy
+                .ExecuteAsync(
+                token => _billingService.GetProductsAsync(skip, limit, token),
+                cancellationToken
+                );
+
+            var cats = await _database
+                .GetCollection<CatEntity, Guid>(CatsTableName)
+                .FindAsync(c => products.Any(p => p.Id == c.Id), cancellationToken);
+            
+            return cats.Select(x => x.Cat).ToList();   
         }
 
         public Task AddCatToFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
