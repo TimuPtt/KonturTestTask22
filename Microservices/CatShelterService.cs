@@ -73,11 +73,6 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
-            if (!authorizationResult.IsSuccess)
-            {
-                throw new AuthorizationException();
-            }
-
             var products = await _policy
                 .ExecuteAsync(
                 token => _billingService.GetProductsAsync(skip, limit, token),
@@ -95,11 +90,6 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
-            if (!authorizationResult.IsSuccess)
-            {
-                throw new AuthorizationException();
-            }
-
             var favouriteCat = new UserFavoriteEntity()
             {
                 Id = Guid.NewGuid(),
@@ -114,11 +104,6 @@ namespace Microservices
         public async Task<List<Cat>> GetFavouriteCatsAsync(string sessionId, CancellationToken cancellationToken)
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
-
-            if (!authorizationResult.IsSuccess)
-            {
-                throw new AuthorizationException();
-            }
 
             var userFavourites = await _database
                 .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
@@ -136,9 +121,12 @@ namespace Microservices
             return cats.Select(x => x.Cat).ToList();
         }
 
-        public Task DeleteCatFromFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
+        public async Task DeleteCatFromFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
+
+
+
         }
 
         public Task<Bill> BuyCatAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
@@ -150,10 +138,7 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
-            if (!authorizationResult.IsSuccess)
-            {
-                throw new AuthorizationException();
-            }
+           
 
             var id = Guid.NewGuid();
 
@@ -219,6 +204,12 @@ namespace Microservices
                     token => _authorizationService.AuthorizeAsync(sessionId, token),
                     cancellationToken
                     );
+
+            if (!authorizationResult.IsSuccess)
+            {
+                throw new AuthorizationException();
+            }
+
             return authorizationResult;
         }
 
