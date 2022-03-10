@@ -36,6 +36,7 @@ namespace Microservices
 
         private const string CatsTableName = "Cats";
         private const int RetryCount = 3;
+        private const int DefaultCatPrice = 1000;
 
         public CatShelterService(
             IDatabase database,
@@ -117,7 +118,7 @@ namespace Microservices
                 Name = request.Name,
                 CatPhoto = request.Photo,
                 BreedPhoto = breedInfo.Photo,
-                Price = priceInfo.Prices.Count != 0 ? priceInfo.Prices[^1].Price : 1000,
+                Price = priceInfo.Prices.Count == 0 ? DefaultCatPrice : priceInfo.Prices[^1].Price,
                 Prices = priceInfo.Prices.Select(x => (x.Date, x.Price)).ToList()
             };
 
