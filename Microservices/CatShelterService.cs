@@ -25,6 +25,13 @@ namespace Microservices
         public Cat Cat { get; set; }
     }
 
+    public class UserFavoriteEntity : IEntityWithId<Guid>
+    {
+        public Guid Id { get; set; }
+        public Guid UserId { get; set; }
+        public Guid CatId { get; set; }
+    }
+
     public class CatShelterService : ICatShelterService
     {
         private readonly IDatabase _database;
@@ -35,6 +42,7 @@ namespace Microservices
         private readonly IAsyncPolicy _policy;
 
         private const string CatsTableName = "Cats";
+        private const string FavTableName = "Favourites";
         private const int RetryCount = 3;
         private const int DefaultCatPrice = 1000;
 
@@ -83,14 +91,49 @@ namespace Microservices
             return cats.Select(x => x.Cat).ToList();   
         }
 
-        public Task AddCatToFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
+        public async Task AddCatToFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
+
+            if (!authorizationResult.IsSuccess)
+            {
+                throw new AuthorizationException();
+            }
+
+            var favouriteCat = new UserFavoriteEntity()
+            {
+                Id = Guid.NewGuid(),
+                UserId = authorizationResult.UserId,
+                CatId = catId
+            };
+
+            await _database.GetCollection<UserFavoriteEntity, Guid>(FavTableName)
+                .WriteAsync(favouriteCat, cancellationToken);
         }
 
-        public Task<List<Cat>> GetFavouriteCatsAsync(string sessionId, CancellationToken cancellationToken)
+        public async Task<List<Cat>> GetFavouriteCatsAsync(string sessionId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
+
+            if (!authorizationResult.IsSuccess)
+            {
+                throw new AuthorizationException();
+            }
+
+            var userFavourites = await _database
+                .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
+                .FindAsync(x => x.UserId == authorizationResult.UserId, cancellationToken);
+
+
+            if (!userFavourites.Any())
+            {
+                return new List<Cat>();
+            }
+
+            var cats = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
+                .FindAsync(c => userFavourites.Any(p => p.Id == c.Id), cancellationToken);
+
+            return cats.Select(x => x.Cat).ToList();
         }
 
         public Task DeleteCatFromFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
