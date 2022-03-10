@@ -125,6 +125,9 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
+            var userFavourite = await _database
+                .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
+                .FindAsync(x => x.CatId == catId && x.UserId == authorizationResult.UserId, cancellationToken);
 
 
         }
