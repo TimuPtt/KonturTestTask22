@@ -17,7 +17,7 @@ using Polly;
 namespace Microservices
 {   
     /// <summary>
-    /// Представление <see cref="Microservices.Types.Cat"/> для записи в БД
+    /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ <see cref="Microservices.Types.Cat"/> пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅ
     /// </summary>
     public class CatEntity : IEntityWithId<Guid>
     {
@@ -125,11 +125,15 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
-            var userFavourite = await _database
+            var userFavourites = await _database
                 .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
                 .FindAsync(x => x.CatId == catId && x.UserId == authorizationResult.UserId, cancellationToken);
 
-
+            foreach (var userFavourite in userFavourites)
+            {
+                await _database.GetCollection<UserFavoriteEntity, Guid>(FavTableName)
+                    .DeleteAsync(userFavourite.CatId, cancellationToken);
+            }
         }
 
         public Task<Bill> BuyCatAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
@@ -194,11 +198,11 @@ namespace Microservices
         }
 
         /// <summary>
-        /// Авторизует пользователя
+        /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         /// </summary>
-        /// <param name="sessionId">ИД сессии</param>
+        /// <param name="sessionId">пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ</param>
         /// <param name="cancellationToken"></param>
-        /// <returns>Результат авторизации</returns>
+        /// <returns>пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ</returns>
         private async Task<AuthorizationResult> AuthorizeAsync(string sessionId, CancellationToken cancellationToken)
         {
             var authorizationResult =
