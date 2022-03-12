@@ -186,8 +186,6 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
-           
-
             var id = Guid.NewGuid();
 
             var breedInfo = await _policy
@@ -260,7 +258,5 @@ namespace Microservices
 
             return authorizationResult;
         }
-
-
     }
 }
