@@ -17,7 +17,7 @@ using Polly;
 namespace Microservices
 {   
     /// <summary>
-    /// ������������� <see cref="Microservices.Types.Cat"/> ��� ������ � ��
+    /// Представление <see cref="Microservices.Types.Cat"/> для записи в БД
     /// </summary>
     public class CatEntity : IEntityWithId<Guid>
     {
@@ -239,11 +239,11 @@ namespace Microservices
         }
 
         /// <summary>
-        /// ���������� ������������
+        /// Авторизует пользователя
         /// </summary>
-        /// <param name="sessionId">�� ������</param>
+        /// <param name="sessionId">ИД сессии</param>
         /// <param name="cancellationToken"></param>
-        /// <returns>��������� �����������</returns>
+        /// <returns>Результат авторизации</returns>
         private async Task<AuthorizationResult> AuthorizeAsync(string sessionId, CancellationToken cancellationToken)
         {
             var authorizationResult =
