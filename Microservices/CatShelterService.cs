@@ -43,7 +43,7 @@ namespace Microservices
 
         private const string CatsTableName = "Cats";
         private const string FavTableName = "Favourites";
-        private const int RetryCount = 3;
+        private const int RetryCount = 4;
         private const int DefaultCatPrice = 1000;
 
         public CatShelterService(
@@ -115,10 +115,28 @@ namespace Microservices
                 return new List<Cat>();
             }
 
-            var cats = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
-                .FindAsync(c => userFavourites.Any(p => p.Id == c.Id), cancellationToken);
+            var unsoldProductIds = new List<Guid>();
 
-            return cats.Select(x => x.Cat).ToList();
+            foreach ( var userFavorite in userFavourites)
+            {
+                var product = await _policy
+                    .ExecuteAsync(
+                    token => _billingService
+                    .GetProductAsync(userFavorite.CatId, token), 
+                    cancellationToken);
+
+                if (product == null)
+                {
+                    continue;
+                }
+
+                unsoldProductIds.Add(userFavorite.CatId);
+            }
+
+            var cats = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
+                .FindAsync(c => unsoldProductIds.Any(p => p == c.Id), cancellationToken);
+
+            return cats.Where(x => unsoldProductIds.Contains(x.Id)).Select(x => x.Cat).ToList();
         }
 
         public async Task DeleteCatFromFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
@@ -132,13 +150,36 @@ namespace Microservices
             foreach (var userFavourite in userFavourites)
             {
                 await _database.GetCollection<UserFavoriteEntity, Guid>(FavTableName)
-                    .DeleteAsync(userFavourite.CatId, cancellationToken);
+                    .DeleteAsync(userFavourite.Id, cancellationToken);
             }
         }
 
-        public Task<Bill> BuyCatAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
+        public async Task<Bill> BuyCatAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
+
+            var product = await _policy
+                .ExecuteAsync(
+                token => _billingService.GetProductAsync(catId, token),
+                cancellationToken
+                );
+
+            if (product == null)
+            {
+                throw new InvalidRequestException();
+            }
+
+            var catEntitie = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
+                .FindAsync(catId, cancellationToken);
+
+            var price = catEntitie?.Cat.Price ?? DefaultCatPrice;
+            var bill = await _policy
+                .ExecuteAsync(
+                token => _billingService.SellProductAsync(catId, price, token),
+                cancellationToken
+                );
+
+            return bill;
         }
 
         public async Task<Guid> AddCatAsync(string sessionId, AddCatRequest request, CancellationToken cancellationToken)
@@ -189,7 +230,7 @@ namespace Microservices
                 Cat = cat, 
                 Id = cat.Id 
             };
-            _database
+            await _database
                 .GetCollection<CatEntity, Guid>(CatsTableName)
                 .WriteAsync(catEntity, cancellationToken);
 
