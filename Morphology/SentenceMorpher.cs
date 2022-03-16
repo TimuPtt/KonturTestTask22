@@ -79,29 +79,26 @@ namespace Morphology
                 foreach (var tag in splitedTags)
                 {
                     var lowerTag = tag.ToLower();
-                    if (!_tagsMap.ContainsKey(lowerTag))
-                    {   
-                        if (_tagsMap.Count == 0)
-                        {   
-                            _tagsMap.Add(lowerTag, PrimeNumber.GetBasePrime());
-                            tagsMultiple *= (uint) PrimeNumber.GetBasePrime();
-
-                            continue;
-                        }
-                        else
-                        {
-                            var currentTag = PrimeNumber.GetNext(_tagsMap.Values.Max());
-                            _tagsMap.Add(lowerTag, currentTag);
-                            tagsMultiple *= (uint)currentTag;
-
-                            continue;
-                        }
-                    }
-                    else
+                    if (_tagsMap.ContainsKey(lowerTag))
                     {
+
                         tagsMultiple *= (uint)_tagsMap[lowerTag];
                         continue;
                     }
+
+                    if (_tagsMap.Count == 0)
+                    {
+                        _tagsMap.Add(lowerTag, PrimeNumber.GetBasePrime());
+                        tagsMultiple *= PrimeNumber.GetBasePrime();
+
+                        continue;
+                    }
+
+                    var currentTag = PrimeNumber.GetNext(_tagsMap.Values.Max());
+                    _tagsMap.Add(lowerTag, currentTag);
+                    tagsMultiple *= currentTag;
+
+                    continue;
                 }
             }
             return tagsMultiple;
