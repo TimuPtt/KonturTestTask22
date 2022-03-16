@@ -53,15 +53,15 @@ namespace AutoComplete
                     if (current.Children != null && current.Children.TryGetValue(name[i], out var node))
                     {
                         current = node;
+                        continue;
                     }
-                    else
+
+                    if (current.Children == null)
                     {
-                        if (current.Children == null)
-                        {
-                            current.Children = new Dictionary<char, Node>();
-                        }
-                        current.Children.Add(name[i], current = new Node() { Symbol = name[i] });
+                        current.Children = new Dictionary<char, Node>();
                     }
+
+                    current.Children.Add(name[i], current = new Node() { Symbol = name[i] });
                 }
                 current.IsFullName = true;
             }
