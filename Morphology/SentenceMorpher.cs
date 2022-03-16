@@ -97,8 +97,6 @@ namespace Morphology
                     var currentTag = PrimeNumber.GetNext(_tagsMap.Values.Max());
                     _tagsMap.Add(lowerTag, currentTag);
                     tagsMultiple *= currentTag;
-
-                    continue;
                 }
             }
             return tagsMultiple;
@@ -144,33 +142,26 @@ namespace Morphology
                     if (dictionary.ContainsKey(currentWord))
                     {
                         var parsedTag1 = ParseTag(lowerDictionaryLine, tagsMap);
-                        if (dictionary[currentWord].ContainsKey(parsedTag1))
-                        {
-                            continue;
-                        }
-                        else
+
+                        if (!dictionary[currentWord].ContainsKey(parsedTag1))
                         {
                             dictionary[currentWord].Add(parsedTag1, lowerDictionaryLine.Split('\t')[0]);
                             isNormalForm = false;
                             continue;
                         }
-                    }
-                    else
-                    {
-                        dictionary.Add(currentWord, new Dictionary<uint, string>());
-                        isNormalForm = false;
+
                         continue;
                     }
+
+                    dictionary.Add(currentWord, new Dictionary<uint, string>());
+                    isNormalForm = false;
+                    continue;
                 }
 
                 var splittedWord = lowerDictionaryLine.Split('\t')[0];
                 var parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
 
-                if (dictionary[currentWord].ContainsKey(parsedTag))
-                {
-                    continue;
-                }
-                else
+                if (!dictionary[currentWord].ContainsKey(parsedTag))
                 {
                     dictionary[currentWord].Add(parsedTag, splittedWord);
                 }
