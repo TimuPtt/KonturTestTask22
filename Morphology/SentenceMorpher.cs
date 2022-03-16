@@ -15,6 +15,117 @@ namespace Morphology
             _tagsMap = tagsMap;
         }
 
+        /// <summary>
+        ///     Создает <see cref="SentenceMorpher"/> из переданного набора строк словаря.
+        /// </summary>
+        /// <remarks>
+        ///     В этом методе должен быть код инициализации: 
+        ///     чтение и преобразование входных данных для дальнейшего их использования
+        /// </remarks>
+        /// <param name="dictionaryLines">
+        ///     Строки исходного словаря OpenCorpora в формате plain-text.
+        ///     <code> СЛОВО(знак_табуляции)ЧАСТЬ РЕЧИ( )атрибут1[, ]атрибут2[, ]атрибутN </code>
+        /// </param>
+        public static SentenceMorpher Create(IEnumerable<string> dictionaryLines)
+        {
+            var dictionary = new Dictionary<string, Dictionary<uint, string>>();
+            var tagsMap = new Dictionary<string, uint>();
+
+            var currentWord = string.Empty;
+            var isNormalForm = false;
+
+            foreach (var dictionaryLine in dictionaryLines)
+            {
+                var lowerDictionaryLine = dictionaryLine.ToLower();
+                if (string.IsNullOrWhiteSpace(lowerDictionaryLine))
+                {
+                    continue;
+                }
+
+                if (char.IsDigit(lowerDictionaryLine[0]))
+                {
+                    isNormalForm = true;
+                    continue;
+                }
+
+                if (isNormalForm)
+                {
+                    currentWord = lowerDictionaryLine.Split('\t')[0];
+
+                    if (dictionary.ContainsKey(currentWord))
+                    {
+                        var parsedTag1 = ParseTag(lowerDictionaryLine, tagsMap);
+
+                        if (!dictionary[currentWord].ContainsKey(parsedTag1))
+                        {
+                            dictionary[currentWord].Add(parsedTag1, lowerDictionaryLine.Split('\t')[0]);
+                            isNormalForm = false;
+                            continue;
+                        }
+
+                        continue;
+                    }
+
+                    dictionary.Add(currentWord, new Dictionary<uint, string>());
+                    isNormalForm = false;
+                    continue;
+                }
+
+                var splittedWord = lowerDictionaryLine.Split('\t')[0];
+                var parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
+
+                if (!dictionary[currentWord].ContainsKey(parsedTag))
+                {
+                    dictionary[currentWord].Add(parsedTag, splittedWord);
+                }
+
+            }
+
+            return new SentenceMorpher(dictionary, tagsMap);
+        }
+
+        /// <summary>
+        ///     Выполняет склонение предложения согласно указанному формату
+        /// </summary>
+        /// <param name="sentence">
+        ///     Входное предложение <para/>
+        ///     Формат: набор слов, разделенных пробелами.
+        ///     После слова может следовать спецификатор требуемой части речи (формат описан далее),
+        ///     если он отсутствует - слово требуется перенести в выходное предложение без изменений.
+        ///     Спецификатор имеет следующий формат: <code>{ЧАСТЬ РЕЧИ,аттрибут1,аттрибут2,..,аттрибутN}</code>
+        ///     Если для спецификации найдётся несколько совпадений - используется первое из них
+        /// </param>
+        public virtual string Morph(string sentence)
+        {
+            if (string.IsNullOrWhiteSpace(sentence))
+            {
+                return string.Empty;
+            }
+            sentence = sentence.ToLower();
+            var splitedSentence = sentence.Split(' ', '\t');
+            var resultSentence = new List<string>();
+            foreach (var word in splitedSentence)
+            {
+                if (!word.Contains('{'))
+                {
+                    resultSentence.Add(word);
+                    continue;
+                }
+
+                var splitedWord = word.Split('{', '}');
+                if (string.IsNullOrWhiteSpace(splitedWord[1]))
+                {
+                    resultSentence.Add(splitedWord[0]);
+                    continue;
+                }
+
+                resultSentence.Add(MorphWord(splitedWord[0], GenerateTagCode(splitedWord[1], _tagsMap)));
+            }
+
+            sentence = String.Join(' ', resultSentence);
+            return sentence;
+        }
+
         private static class PrimeNumber
         {
             private static readonly uint basePrime = 2;
@@ -101,74 +212,7 @@ namespace Morphology
             return tagsMultiple;
         }
 
-        /// <summary>
-        ///     Создает <see cref="SentenceMorpher"/> из переданного набора строк словаря.
-        /// </summary>
-        /// <remarks>
-        ///     В этом методе должен быть код инициализации: 
-        ///     чтение и преобразование входных данных для дальнейшего их использования
-        /// </remarks>
-        /// <param name="dictionaryLines">
-        ///     Строки исходного словаря OpenCorpora в формате plain-text.
-        ///     <code> СЛОВО(знак_табуляции)ЧАСТЬ РЕЧИ( )атрибут1[, ]атрибут2[, ]атрибутN </code>
-        /// </param>
-        public static SentenceMorpher Create(IEnumerable<string> dictionaryLines)
-        {
-            var dictionary = new Dictionary<string, Dictionary<uint, string>>();
-            var tagsMap = new Dictionary<string, uint>();
-
-            var currentWord = string.Empty;
-            var isNormalForm = false;
-
-            foreach (var dictionaryLine in dictionaryLines)
-            {
-                var lowerDictionaryLine = dictionaryLine.ToLower();
-                if (string.IsNullOrWhiteSpace(lowerDictionaryLine))
-                {
-                    continue;
-                }
-
-                if (char.IsDigit(lowerDictionaryLine[0]))
-                {
-                    isNormalForm = true;
-                    continue;
-                }
-
-                if (isNormalForm)
-                {
-                    currentWord = lowerDictionaryLine.Split('\t')[0];
-
-                    if (dictionary.ContainsKey(currentWord))
-                    {
-                        var parsedTag1 = ParseTag(lowerDictionaryLine, tagsMap);
-
-                        if (!dictionary[currentWord].ContainsKey(parsedTag1))
-                        {
-                            dictionary[currentWord].Add(parsedTag1, lowerDictionaryLine.Split('\t')[0]);
-                            isNormalForm = false;
-                            continue;
-                        }
-
-                        continue;
-                    }
-
-                    dictionary.Add(currentWord, new Dictionary<uint, string>());
-                    isNormalForm = false;
-                    continue;
-                }
-
-                var splittedWord = lowerDictionaryLine.Split('\t')[0];
-                var parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
-
-                if (!dictionary[currentWord].ContainsKey(parsedTag))
-                {
-                    dictionary[currentWord].Add(parsedTag, splittedWord);
-                }
-
-            }
-
-            return new SentenceMorpher(dictionary, tagsMap);
-        }
+       
 
         private string MorphWord(string word, uint tagCode)
         {   
@@ -214,48 +258,6 @@ namespace Morphology
                 }
             }
             return generatedCode;
-        }
-
-        /// <summary>
-        ///     Выполняет склонение предложения согласно указанному формату
-        /// </summary>
-        /// <param name="sentence">
-        ///     Входное предложение <para/>
-        ///     Формат: набор слов, разделенных пробелами.
-        ///     После слова может следовать спецификатор требуемой части речи (формат описан далее),
-        ///     если он отсутствует - слово требуется перенести в выходное предложение без изменений.
-        ///     Спецификатор имеет следующий формат: <code>{ЧАСТЬ РЕЧИ,аттрибут1,аттрибут2,..,аттрибутN}</code>
-        ///     Если для спецификации найдётся несколько совпадений - используется первое из них
-        /// </param>
-        public virtual string Morph(string sentence)
-        {
-            if (string.IsNullOrWhiteSpace(sentence))
-            {
-                return string.Empty;
-            }
-            sentence = sentence.ToLower();
-            var splitedSentence = sentence.Split(' ', '\t');
-            var resultSentence = new List<string>();
-            foreach(var word in splitedSentence)
-            {
-                if (!word.Contains('{'))
-                {
-                    resultSentence.Add(word);
-                    continue;
-                }
-
-                var splitedWord = word.Split('{', '}');
-                if (string.IsNullOrWhiteSpace(splitedWord[1]))
-                {
-                    resultSentence.Add(splitedWord[0]);
-                    continue;
-                }
-                
-                resultSentence.Add(MorphWord(splitedWord[0], GenerateTagCode(splitedWord[1], _tagsMap)));
-            }
-
-            sentence = String.Join(' ', resultSentence);
-            return sentence;
         }
     }
 }
