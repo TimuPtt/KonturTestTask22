@@ -81,7 +81,6 @@ namespace Morphology
                     var lowerTag = tag.ToLower();
                     if (_tagsMap.ContainsKey(lowerTag))
                     {
-
                         tagsMultiple *= (uint)_tagsMap[lowerTag];
                         continue;
                     }
@@ -239,23 +238,23 @@ namespace Morphology
             var resultSentence = new List<string>();
             foreach(var word in splitedSentence)
             {
-                if (word.Contains('{'))
-                {
-                    var splitedWord = word.Split('{', '}');
-                    if (string.IsNullOrWhiteSpace(splitedWord[1]))
-                    {
-                        resultSentence.Add(splitedWord[0]);
-                        continue;
-                    }
-                    resultSentence.Add(MorphWord(splitedWord[0], GenerateTagCode(splitedWord[1], _tagsMap)));
-                }
-                else
+                if (!word.Contains('{'))
                 {
                     resultSentence.Add(word);
+                    continue;
                 }
+
+                var splitedWord = word.Split('{', '}');
+                if (string.IsNullOrWhiteSpace(splitedWord[1]))
+                {
+                    resultSentence.Add(splitedWord[0]);
+                    continue;
+                }
+                
+                resultSentence.Add(MorphWord(splitedWord[0], GenerateTagCode(splitedWord[1], _tagsMap)));
             }
+
             sentence = String.Join(' ', resultSentence);
-           
             return sentence;
         }
     }
