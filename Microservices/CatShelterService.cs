@@ -84,20 +84,16 @@ namespace Microservices
                 cancellationToken
                 );
 
-            //var cats = await _database
-            //    .GetCollection<CatEntity, Guid>(CatsTableName)
-            //    .FindAsync(c => products.Any(p => p.Id == c.Id), cancellationToken);
-
-            var cats = new List<CatEntity>(products.Count);
+            var catEntities = new List<CatEntity>(products.Count);
 
             foreach (var product in products)
             {
                 var cat = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
                     .FindAsync(product.Id, cancellationToken); 
-                cats.Add(cat);
+                catEntities.Add(cat);
             }
 
-            return cats.Select(x => x.Cat).ToList();
+            return catEntities.Select(catEntity => catEntity.Cat).ToList();
         }
 
         public async Task AddCatToFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
@@ -123,9 +119,11 @@ namespace Microservices
                 .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
                 .FindAsync(x => x.UserId == authorizationResult.UserId, cancellationToken);
 
+            var favouriteCats = new List<Cat>();
+
             if (!userFavourites.Any())
             {
-                return new List<Cat>();
+                return favouriteCats;
             }
 
             var unsoldProductIds = new List<Guid>();
@@ -146,10 +144,15 @@ namespace Microservices
                 unsoldProductIds.Add(userFavorite.CatId);
             }
 
-            var cats = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
-                .FindAsync(c => unsoldProductIds.Any(p => p == c.Id), cancellationToken);
+            var catEntities = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
+                .FindAsync(cat => unsoldProductIds.Any(product => product == cat.Id), cancellationToken);
 
-            return cats.Where(x => unsoldProductIds.Contains(x.Id)).Select(x => x.Cat).ToList();
+            favouriteCats = catEntities
+                .Where(catEntity => unsoldProductIds.Contains(catEntity.Id))
+                .Select(catEntity => catEntity.Cat)
+                .ToList();
+
+            return favouriteCats;
         }
 
         public async Task DeleteCatFromFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
@@ -158,7 +161,7 @@ namespace Microservices
 
             var userFavourites = await _database
                 .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
-                .FindAsync(x => x.CatId == catId && x.UserId == authorizationResult.UserId, cancellationToken);
+                .FindAsync(userFaourite => userFaourite.CatId == catId && userFaourite.UserId == authorizationResult.UserId, cancellationToken);
 
             foreach (var userFavourite in userFavourites)
             {
@@ -199,7 +202,7 @@ namespace Microservices
         {
             var authorizationResult = await AuthorizeAsync(sessionId, cancellationToken);
 
-            var id = Guid.NewGuid();
+            var catId = Guid.NewGuid();
 
             var breedInfo = await _policy
                 .ExecuteAsync(
@@ -214,7 +217,7 @@ namespace Microservices
 
             var cat = new Cat()
             {
-                Id = id,
+                Id = catId,
                 BreedId = breedInfo.BreedId,
                 AddedBy = authorizationResult.UserId,
                 Breed = breedInfo.BreedName,
@@ -230,17 +233,17 @@ namespace Microservices
                 Id = cat.Id,
                 BreedId = cat.BreedId
             };
+            var catEntity = new CatEntity()
+            {
+                Cat = cat,
+                Id = cat.Id
+            };
+
             await _policy
                 .ExecuteAsync(
                 token => _billingService.AddProductAsync(product, token),
                 cancellationToken
                 );
-
-            var catEntity = new CatEntity() 
-            { 
-                Cat = cat, 
-                Id = cat.Id 
-            };
             await _database
                 .GetCollection<CatEntity, Guid>(CatsTableName)
                 .WriteAsync(catEntity, cancellationToken);
