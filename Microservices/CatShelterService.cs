@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microservices.Common.Exceptions;
 using Microservices.ExternalServices.Authorization;
 using Microservices.ExternalServices.Authorization.Types;
@@ -12,6 +13,7 @@ using Microservices.ExternalServices.CatDb;
 using Microservices.ExternalServices.CatExchange;
 using Microservices.ExternalServices.Database;
 using Microservices.Types;
+
 using Polly;
 
 namespace Microservices
@@ -25,6 +27,9 @@ namespace Microservices
         public Cat Cat { get; set; }
     }
 
+    /// <summary>
+    /// Представление избранных котиков пользователя
+    /// </summary>
     public class UserFavoriteEntity : IEntityWithId<Guid>
     {
         public Guid Id { get; set; }
@@ -79,11 +84,20 @@ namespace Microservices
                 cancellationToken
                 );
 
-            var cats = await _database
-                .GetCollection<CatEntity, Guid>(CatsTableName)
-                .FindAsync(c => products.Any(p => p.Id == c.Id), cancellationToken);
-            
-            return cats.Select(x => x.Cat).ToList();   
+            //var cats = await _database
+            //    .GetCollection<CatEntity, Guid>(CatsTableName)
+            //    .FindAsync(c => products.Any(p => p.Id == c.Id), cancellationToken);
+
+            var cats = new List<CatEntity>(products.Count);
+
+            foreach (var product in products)
+            {
+                var cat = await _database.GetCollection<CatEntity, Guid>(CatsTableName)
+                    .FindAsync(product.Id, cancellationToken); 
+                cats.Add(cat);
+            }
+
+            return cats.Select(x => x.Cat).ToList();
         }
 
         public async Task AddCatToFavouritesAsync(string sessionId, Guid catId, CancellationToken cancellationToken)
@@ -108,7 +122,6 @@ namespace Microservices
             var userFavourites = await _database
                 .GetCollection<UserFavoriteEntity, Guid>(FavTableName)
                 .FindAsync(x => x.UserId == authorizationResult.UserId, cancellationToken);
-
 
             if (!userFavourites.Any())
             {
