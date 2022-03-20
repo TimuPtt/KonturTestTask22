@@ -6,12 +6,12 @@ namespace Morphology
 {
     public class SentenceMorpher {
 
-        private readonly Dictionary<string, Dictionary<uint, string>> _dictionary; //
+        private readonly Dictionary<string, Dictionary<uint, string>> _morphMap;
         private readonly Dictionary<string, uint> _tagsMap;
 
-        public SentenceMorpher(Dictionary<string, Dictionary<uint, string>> dictionary, Dictionary<string, uint> tagsMap)
+        public SentenceMorpher(Dictionary<string, Dictionary<uint, string>> morphMap, Dictionary<string, uint> tagsMap)
         {
-            _dictionary = dictionary;
+            _morphMap = morphMap;
             _tagsMap = tagsMap;
         }
 
@@ -28,7 +28,7 @@ namespace Morphology
         /// </param>
         public static SentenceMorpher Create(IEnumerable<string> dictionaryLines)
         {
-            var dictionary = new Dictionary<string, Dictionary<uint, string>>();
+            var morphMap = new Dictionary<string, Dictionary<uint, string>>();
             var tagsMap = new Dictionary<string, uint>();
 
             var currentWord = string.Empty;
@@ -48,40 +48,39 @@ namespace Morphology
                     continue;
                 }
 
+                uint parsedTag;
                 if (isNormalForm)
                 {
                     currentWord = lowerDictionaryLine.Split('\t')[0];
 
-                    if (dictionary.ContainsKey(currentWord))
+                    if (!morphMap.ContainsKey(currentWord))
                     {
-                        var parsedTag1 = ParseTag(lowerDictionaryLine, tagsMap);
-
-                        if (!dictionary[currentWord].ContainsKey(parsedTag1))
-                        {
-                            dictionary[currentWord].Add(parsedTag1, lowerDictionaryLine.Split('\t')[0]);
-                            isNormalForm = false;
-                            continue;
-                        }
-
+                        morphMap.Add(currentWord, new Dictionary<uint, string>());
+                        isNormalForm = false;
                         continue;
                     }
 
-                    dictionary.Add(currentWord, new Dictionary<uint, string>());
-                    isNormalForm = false;
+                    parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
+
+                    if (!morphMap[currentWord].ContainsKey(parsedTag))
+                    {
+                        morphMap[currentWord].Add(parsedTag, lowerDictionaryLine.Split('\t')[0]);
+                        isNormalForm = false;
+                    }
+
                     continue;
                 }
 
                 var splittedWord = lowerDictionaryLine.Split('\t')[0];
-                var parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
+                parsedTag = ParseTag(lowerDictionaryLine, tagsMap);
 
-                if (!dictionary[currentWord].ContainsKey(parsedTag))
+                if (!morphMap[currentWord].ContainsKey(parsedTag))
                 {
-                    dictionary[currentWord].Add(parsedTag, splittedWord);
+                    morphMap[currentWord].Add(parsedTag, splittedWord);
                 }
-
             }
 
-            return new SentenceMorpher(dictionary, tagsMap);
+            return new SentenceMorpher(morphMap, tagsMap);
         }
 
         /// <summary>
@@ -216,14 +215,14 @@ namespace Morphology
 
         private string MorphWord(string word, uint tagCode)
         {   
-            if (!_dictionary.ContainsKey(word))
+            if (!_morphMap.ContainsKey(word))
             {
                 return word;
             }
 
-            if (_dictionary[word].ContainsKey(tagCode))
+            if (_morphMap[word].ContainsKey(tagCode))
             {
-                return _dictionary[word][tagCode];
+                return _morphMap[word][tagCode];
             }
 
             return FindNearestWord(word, tagCode);
@@ -232,7 +231,7 @@ namespace Morphology
         private string FindNearestWord(string word, uint tagCode)
         {
     
-            foreach(var wordForm in _dictionary[word])
+            foreach(var wordForm in _morphMap[word])
             {
                 if (wordForm.Key % tagCode == 0 && PrimeNumber.CheckPrime(wordForm.Key / tagCode))
                 {
