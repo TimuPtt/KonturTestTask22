@@ -100,9 +100,11 @@ namespace Morphology
             {
                 return string.Empty;
             }
+
             sentence = sentence.ToLower();
             var splitedSentence = sentence.Split(' ', '\t');
             var resultSentence = new List<string>();
+
             foreach (var word in splitedSentence)
             {
                 if (!word.Contains('{'))
@@ -118,69 +120,16 @@ namespace Morphology
                     continue;
                 }
 
-                resultSentence.Add(MorphWord(splitedWord[0], GenerateTagCode(splitedWord[1], _tagsMap)));
+                resultSentence.Add(MorphWord(splitedWord[0], GenerateTagsCode(splitedWord[1], _tagsMap)));
             }
 
-            sentence = String.Join(' ', resultSentence);
+            sentence = string.Join(' ', resultSentence);
             return sentence;
-        }
-
-        private static class PrimeNumber
-        {
-            private static readonly uint basePrime = 2;
-
-            public static uint GetBasePrime()
-            {
-                return basePrime;
-            }
-
-            public static uint GetNext(uint current)
-            {
-                if (current == basePrime)
-                {
-                    return 3;
-                }
-                if (current == 3)
-                {
-                    return 5;
-                }
-
-                var nextPrime = current + 2;
-
-                while (CheckPrime(nextPrime) == false)
-                {
-                    nextPrime += 2;
-                }
-
-                return nextPrime;
-            }
-
-            public static bool CheckPrime(uint number)
-            {
-                bool IsPrime = true;
-
-                if (number is 2 or 3 or 5)
-                {
-                    return true;
-                }
-
-                for (int i = 2; i < number / 2; i++)
-                {
-                    if (number % i == 0)
-                    {
-                        IsPrime = false;
-                        break;
-                    }
-                }
-
-                return IsPrime;
-            }
         }
 
         private static uint ParseTag(string dictionaryLine, Dictionary<string, uint> _tagsMap)
         {
-
-            var splitedLine = dictionaryLine.Split('\t', System.StringSplitOptions.RemoveEmptyEntries);
+            var splitedLine = dictionaryLine.Split('\t', StringSplitOptions.RemoveEmptyEntries);
             var tagsMultiple = (uint)1;
 
             if (!_tagsMap.ContainsKey(splitedLine[0]))
@@ -211,8 +160,6 @@ namespace Morphology
             return tagsMultiple;
         }
 
-       
-
         private string MorphWord(string word, uint tagCode)
         {   
             if (!_morphMap.ContainsKey(word))
@@ -230,7 +177,6 @@ namespace Morphology
 
         private string FindNearestWord(string word, uint tagCode)
         {
-    
             foreach(var wordForm in _morphMap[word])
             {
                 if (wordForm.Key % tagCode == 0 && PrimeNumber.CheckPrime(wordForm.Key / tagCode))
@@ -238,13 +184,15 @@ namespace Morphology
                     return wordForm.Value;
                 }
             }
+
             return word;
         }
 
-        private uint GenerateTagCode(string tags, Dictionary<string, uint> tagsMap)
+        private uint GenerateTagsCode(string tags, Dictionary<string, uint> tagsMap)
         {
-            var splitedTags = tags.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
-            var generatedCode = (uint) 1;
+            var splitedTags = tags.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            var generatedCode = 1u;
+
             foreach(var tag in splitedTags)
             {
                 if (tagsMap.ContainsKey(tag))
@@ -256,7 +204,60 @@ namespace Morphology
                     return 1;
                 }
             }
+
             return generatedCode;
+        }
+    }
+
+    public static class PrimeNumber
+    {
+        private static readonly uint basePrime = 2;
+
+        public static uint GetBasePrime()
+        {
+            return basePrime;
+        }
+
+        public static uint GetNext(uint current)
+        {
+            if (current == basePrime)
+            {
+                return 3;
+            }
+            if (current == 3)
+            {
+                return 5;
+            }
+
+            var nextPrime = current + 2;
+
+            while (CheckPrime(nextPrime) == false)
+            {
+                nextPrime += 2;
+            }
+
+            return nextPrime;
+        }
+
+        public static bool CheckPrime(uint number)
+        {
+            bool IsPrime = true;
+
+            if (number is 2 or 3 or 5)
+            {
+                return true;
+            }
+
+            for (int i = 2; i < number / 2; i++)
+            {
+                if (number % i == 0)
+                {
+                    IsPrime = false;
+                    break;
+                }
+            }
+
+            return IsPrime;
         }
     }
 }
